@@ -58,6 +58,7 @@ private:
 
     std::array<Triangle, 12> m_triangles;
     QImage m_canvas;
+    QImage m_temp;
 
 
 signals:

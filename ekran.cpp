@@ -2,7 +2,6 @@
 
 #include <QPainter>
 
-#include "timer.h"
 
 using namespace math;
 
@@ -46,7 +45,10 @@ void Ekran::paintEvent(QPaintEvent *event)
 {
     QPainter p(this);
 
+    //m_temp = m_canvas;
+
     p.drawImage(0, 0, m_canvas);
+
 
 }
 
@@ -158,7 +160,7 @@ void Ekran::drawTriangle(QImage &img, int x1, int y1, int x2, int y2, int x3, in
 void Ekran::draw3D()
 {
 
-    float AspectRatio = m_canvas.width() / (1.0f * m_canvas.height());
+    float AspectRatio = m_canvas.width() / (float)m_canvas.height();
 
     math::mat4 projection(1.0f);
     projection = math::mat4::perspective(math::mat4::radians(45.0f), AspectRatio, 0.1f, 100.0f);
@@ -184,22 +186,65 @@ void Ekran::draw3D()
     std::array<Triangle, 12> projTriangle;
 
 
+   // qDebug() << m_triangles[0].triangle[1].x << " " << m_triangles[0].triangle[1].y;
+//
+//
+   // m_triangles[0].triangle[1] = rotAll * m_triangles[0].triangle[1];
+//
+   // qDebug() << m_triangles[0].triangle[1].x << " " << m_triangles[0].triangle[1].y;
+//
+   // qDebug() << "--------------------------------------------";
+//
+   // m_triangles[0].triangle[1] = translate * m_triangles[0].triangle[1];
+//
+   // qDebug() << m_triangles[0].triangle[1].x << " " << m_triangles[0].triangle[1].y;
+//
+   // qDebug() << "--------------------------------------------";
+
+
+    int i = 1;
     for (const auto& tri: m_triangles)
     {
         Triangle triProj;
         Triangle triTrans = tri;
 
+
         //triTrans.triangle[0].z = tri.triangle[0].z + 3.0f;
         //triTrans.triangle[1].z = tri.triangle[1].z + 3.0f;
         //triTrans.triangle[2].z = tri.triangle[2].z + 3.0f;
 
-        triTrans.triangle[0] = rotAll * tri.triangle[0];
-        triTrans.triangle[1] = rotAll * tri.triangle[1];
-        triTrans.triangle[2] = rotAll * tri.triangle[2];
 
-        triTrans.triangle[0] = translate * tri.triangle[0];
-        triTrans.triangle[1] = translate * tri.triangle[1];
-        triTrans.triangle[2] = translate * tri.triangle[2];
+        qDebug() << "Trojkat przed rotacja nr:" << i <<
+            " x1:" << tri.triangle[0].x <<
+            " y1:" << tri.triangle[0].y <<
+            " x2:" << tri.triangle[1].x <<
+            " y2:" << tri.triangle[1].y <<
+            " x3:" << tri.triangle[2].x <<
+            " y3:" << tri.triangle[2].y;
+
+
+       // triTrans.triangle[0] = sc * tri.triangle[0];
+       // triTrans.triangle[1] = sc * tri.triangle[1];
+       // triTrans.triangle[2] = sc * tri.triangle[2];
+
+
+        triTrans.triangle[0] = rotAll * triTrans.triangle[0];
+        triTrans.triangle[1] = rotAll * triTrans.triangle[1];
+        triTrans.triangle[2] = rotAll * triTrans.triangle[2];
+
+
+         qDebug() << "Trojkat przed mnozeniem nr:" << i <<
+             " x1:" << tri.triangle[0].x <<
+             " y1:" << tri.triangle[0].y <<
+             " x2:" << tri.triangle[1].x <<
+             " y2:" << tri.triangle[1].y <<
+             " x3:" << tri.triangle[2].x <<
+             " y3:" << tri.triangle[2].y;
+
+
+        triTrans.triangle[0] = translate * triTrans.triangle[0];
+        triTrans.triangle[1] = translate * triTrans.triangle[1];
+        triTrans.triangle[2] = translate * triTrans.triangle[2];
 
 
 
@@ -236,18 +281,21 @@ void Ekran::draw3D()
         triProj.triangle[2].x += 1.0f;
         triProj.triangle[2].y += 1.0f;
 
-        triProj.triangle[0].x *= 0.5f * m_canvas.width() / 2;
-        triProj.triangle[0].y *= 0.5f * m_canvas.height() / 2;
 
-        triProj.triangle[1].x *= 0.5f * m_canvas.width() / 2;
-        triProj.triangle[1].y *= 0.5f * m_canvas.height() / 2;
+        triProj.triangle[0].x *= 0.25f * m_canvas.width();
+        triProj.triangle[0].y *= 0.25f * m_canvas.height();
 
-        triProj.triangle[2].x *= 0.5f * m_canvas.width() / 2;
-        triProj.triangle[2].y *= 0.5f * m_canvas.height() / 2;
+        triProj.triangle[1].x *= 0.25f * m_canvas.width();
+        triProj.triangle[1].y *= 0.25f * m_canvas.height();
+
+        triProj.triangle[2].x *= 0.25f * m_canvas.width();
+        triProj.triangle[2].y *= 0.25f * m_canvas.height();
+
 
         drawTriangle(m_canvas, triProj.triangle[0].x, triProj.triangle[0].y,
                                triProj.triangle[1].x, triProj.triangle[1].y,
                                triProj.triangle[2].x, triProj.triangle[2].y);
+        i++;
 
     }
 
