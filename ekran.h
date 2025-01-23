@@ -2,6 +2,17 @@
 #define EKRAN_H
 
 #include <QWidget>
+#include <QPainter>
+#include <QImage>
+#include <QListWidgetItem>
+#include <QHBoxLayout>
+#include <QComboBox>
+#include <QLabel>
+#include <QPushButton>
+#include <QDoubleSpinBox>
+
+
+
 #include "matrix.h"
 #include <compare>
 
@@ -50,8 +61,12 @@ private:
     void drawTriangle(QImage& img, int x1, int y1, int x2, int y2, int x3, int y3);
 
 
-    void draw3D();
+    void draw3D(float translationX, float translationY, float radianX, float radianY, float radianZ,
+                float scaleX, float scaleY);
+    void setupUI();
 
+
+    math::mat4 rotationMatrix(float radianX, float radianY, float radianZ);
 
 
 private:
@@ -59,6 +74,51 @@ private:
     std::array<Triangle, 12> m_triangles;
     QImage m_canvas;
     QImage m_temp;
+
+
+
+    QHBoxLayout* m_mainLayout;
+    QWidget* m_leftPanel;
+    QWidget* m_rightPanel;
+    QVBoxLayout* m_rightLayout;
+
+    QSlider* m_translateXSlider;
+    QSlider* m_translateYSlider;
+    QSlider* m_rotateSliderX;
+    QSlider* m_rotateSliderY;
+    QSlider* m_rotateSliderZ;
+    QDoubleSpinBox* m_scaleXSpinBox;
+    QDoubleSpinBox* m_scaleYSpinBox;
+
+    QLabel* m_translationLabel;
+    QLabel* m_rotateLabel;
+    QLabel* m_scalingLabel;
+
+    QPushButton* m_resetButton;
+
+    QSpacerItem* m_spacer;
+
+
+    int m_translateXValue;
+    int m_translateYValue;
+    float m_rotationValueX;
+    float m_rotationValueY;
+    float m_rotationValueZ;
+    float m_scaleXValue;
+    float m_scaleYValue;
+
+
+private slots:
+    void onTranslateXChanged(int value);
+    void onTranslateYChanged(int value);
+    void onRotationXChanged(int value);
+    void onRotationYChanged(int value);
+    void onRotationZChanged(int value);
+    void onScaleXChanged(double value);
+    void onScaleYChanged(double value);
+
+    void onButtonClicked();
+
 
 
 signals:
