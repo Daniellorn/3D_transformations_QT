@@ -164,6 +164,30 @@ void Ekran::drawTriangle(QImage &img, int x1, int y1, int x2, int y2, int x3, in
 
 void Ekran::draw3D(float translationX, float translationY, float radianX, float radianY, float radianZ, float scaleX, float scaleY)
 {
+
+
+    vec3 center(0.0f, 0.0f, 0.0f);
+    int totalVertices = 0;
+    for (const auto& tri : m_triangles) {
+        for (const auto& vertex : tri.triangle) {
+            center.x += vertex.x;
+            center.y += vertex.y;
+            center.z += vertex.z;
+            totalVertices++;
+        }
+    }
+    center.x /= totalVertices;
+    center.y /= totalVertices;
+    center.z /= totalVertices;
+
+
+    math::mat4 toCenter(1.0f);
+    toCenter = math::mat4::translation(toCenter, vec3(-center.x, -center.y, -center.z));
+
+    math::mat4 fromCenter(1.0f);
+    fromCenter = math::mat4::translation(fromCenter, vec3(center.x, center.y, center.z));
+
+
     m_canvas.fill(0);
 
     float AspectRatio = m_canvas.width() / (float)m_canvas.height();
@@ -186,7 +210,7 @@ void Ekran::draw3D(float translationX, float translationY, float radianX, float 
 
     math::mat4 model(1.0f);
 
-    model = model3 * model1 * model2;
+    model = fromCenter * model3 * model1 * model2 * toCenter;
 
     math::mat4 view(1.0f);
     view = math::mat4::translation(view, vec3(0.0f, 0.0f, 1.0f));
@@ -204,7 +228,6 @@ void Ekran::draw3D(float translationX, float translationY, float radianX, float 
     std::array<Triangle, 12> projTriangle;
 
 
-    int i = 1;
     for (const auto& tri: m_triangles)
     {
         Triangle triProj;
@@ -212,80 +235,16 @@ void Ekran::draw3D(float translationX, float translationY, float radianX, float 
         Triangle test = tri;
 
 
-        triTrans.triangle[0] = model * triTrans.triangle[0];
-        triTrans.triangle[1] = model * triTrans.triangle[1];
-        triTrans.triangle[2] = model * triTrans.triangle[2];
+
+        triTrans.triangle[0] = ClipSpaceMatrix * triTrans.triangle[0];
+        triTrans.triangle[1] = ClipSpaceMatrix * triTrans.triangle[1];
+        triTrans.triangle[2] = ClipSpaceMatrix * triTrans.triangle[2];
 
 
-        triProj.triangle[0] = projection * triTrans.triangle[0];
-        triProj.triangle[1] = projection * triTrans.triangle[1];
-        triProj.triangle[2] = projection * triTrans.triangle[2];
-//
-//
-        //triProj.triangle[0] = view * triTrans.triangle[0];
-        //triProj.triangle[1] = view * triTrans.triangle[1];
-        //triProj.triangle[2] = view * triTrans.triangle[2];
-
-       // //qDebug() << "Trojkat nr:" <<
-       // //    " x1:" << triProj.triangle[0].x <<
-       // //    " y1:" << triProj.triangle[0].y <<
-       // //    " x2:" << triProj.triangle[1].x <<
-       // //    " y2:" << triProj.triangle[1].y <<
-       // //    " x3:" << triProj.triangle[2].x <<
-       // //    " y3:" << triProj.triangle[2].y;
-//
-//
-       //triProj.triangle[0].x += 1.0f;
-       //triProj.triangle[0].y += 1.0f;
-//
-       //triProj.triangle[1].x += 1.0f;
-       //triProj.triangle[1].y += 1.0f;
-//
-       //triProj.triangle[2].x += 1.0f;
-       //triProj.triangle[2].y += 1.0f;
-//
-//
-       //triProj.triangle[0].x *= 0.25f * m_canvas.width();
-       //triProj.triangle[0].y *= 0.25f * m_canvas.height();
-//
-       //triProj.triangle[1].x *= 0.25f * m_canvas.width();
-       //triProj.triangle[1].y *= 0.25f * m_canvas.height();
-//
-       //triProj.triangle[2].x *= 0.25f * m_canvas.width();
-       //triProj.triangle[2].y *= 0.25f * m_canvas.height();
-//
-       triProj.triangle[0] = view * triProj.triangle[0];
-       triProj.triangle[1] = view * triProj.triangle[1];
-       triProj.triangle[2] = view * triProj.triangle[2];
-
-       //triProj.triangle[0] = model * triProj.triangle[0];
-       //triProj.triangle[1] = model * triProj.triangle[1];
-       //triProj.triangle[2] = model * triProj.triangle[2];
-
-
-        //triTrans.triangle[0] = projection * triTrans.triangle[0];
-        //triTrans.triangle[1] = projection * triTrans.triangle[1];
-        //triTrans.triangle[2] = projection * triTrans.triangle[2];
-
-       test.triangle[0] = ClipSpaceMatrix * test.triangle[0];
-       test.triangle[1] = ClipSpaceMatrix * test.triangle[1];
-       test.triangle[2] = ClipSpaceMatrix * test.triangle[2];
-
-
-        //drawTriangle(m_canvas, triProj.triangle[0].x, triProj.triangle[0].y,
-        //                       triProj.triangle[1].x, triProj.triangle[1].y,
-        //                       triProj.triangle[2].x, triProj.triangle[2].y);
-
-        drawTriangle(m_canvas, test.triangle[0].x, test.triangle[0].y,
-                               test.triangle[1].x, test.triangle[1].y,
-                               test.triangle[2].x, test.triangle[2].y);
-        i++;
-
+        drawTriangle(m_canvas, triTrans.triangle[0].x, triTrans.triangle[0].y,
+                               triTrans.triangle[1].x, triTrans.triangle[1].y,
+                               triTrans.triangle[2].x, triTrans.triangle[2].y);
     }
-
-
-
-    //drawLineBresenham(m_canvas, 0, 0, 400, 400);
 
     update();
 
