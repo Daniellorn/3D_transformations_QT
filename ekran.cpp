@@ -6,9 +6,9 @@
 using namespace math;
 
 Ekran::Ekran(QWidget *parent)
-    : QWidget{parent}, m_translateXValue(0), m_translateYValue(0),
-    m_rotationValueX(0), m_rotationValueY(0), m_rotationValueZ(0),
-    m_scaleXValue(1), m_scaleYValue(1)
+    : QWidget{parent}, m_translateXValue(0.0f), m_translateYValue(0.0f),
+    m_rotationValueX(0.0f), m_rotationValueY(0.0f), m_rotationValueZ(0.0f),
+    m_scaleXValue(1.0f), m_scaleYValue(1.0f), m_scaleZValue(1.0f)
 {
 
     m_canvas = QImage(900, 700, QImage::Format_RGB32);
@@ -43,7 +43,7 @@ Ekran::Ekran(QWidget *parent)
     };
 
     setupUI();
-    draw3D(0, 0, 0, 0, 0, 1, 1);
+    draw3D(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
 }
 
 void Ekran::paintEvent(QPaintEvent *event)
@@ -162,7 +162,7 @@ void Ekran::drawTriangle(QImage &img, int x1, int y1, int x2, int y2, int x3, in
 }
 
 
-void Ekran::draw3D(float translationX, float translationY, float radianX, float radianY, float radianZ, float scaleX, float scaleY)
+void Ekran::draw3D(float translationX, float translationY, float radianX, float radianY, float radianZ, float scaleX, float scaleY, float scaleZ)
 {
 
 
@@ -195,31 +195,32 @@ void Ekran::draw3D(float translationX, float translationY, float radianX, float 
     math::mat4 projection(1.0f);
     projection = math::mat4::perspective(math::mat4::radians(45.0f), AspectRatio, 0.1f, 100.0f);
 
-    //math::mat4 toZero(1.0f);
-    //toZero = math::mat4::translation(toZero, vec3());
-
     math::mat4 model1(1.0f);
     model1 = math::mat4::translation(model1, vec3(3.0f, 2.5f, 3.0f));
-    //model1 = math::mat4::translation(model1, vec3(-m_canvas.width()/2.0f, -m_canvas.height()/2.0f, 3.0f));
 
-    math::mat4 model2(1.0f);
-    model2 = rotationMatrix(radianX, radianY, radianZ);
+    math::mat4 modelRotation(1.0f);
+    modelRotation = rotationMatrix(radianX, radianY, radianZ);
 
-    math::mat4 model3(1.0f);
-    model3 = math::mat4::translation(model3, vec3(translationX, translationY, 1.0f));
+    math::mat4 modelTranslation(1.0f);
+    modelTranslation = math::mat4::translation(modelTranslation, vec3(translationX, translationY, 1.0f));
+
+    math::mat4 modelScale(1.0f);
+    modelScale = math::mat4::scaleXY(modelScale, vec3{scaleX, scaleY, scaleZ});
 
     math::mat4 model(1.0f);
+    model = fromCenter * modelTranslation * model1 * modelScale * modelRotation * toCenter;
 
-    model = fromCenter * model3 * model1 * model2 * toCenter;
+
+
+    math::mat4 viewTranslation(1.0f);
+    viewTranslation = math::mat4::translation(viewTranslation, vec3(center.x, center.y, 3.0f));
+
+
+    math::mat4 viewScale(1.0f);
+    viewScale = math::mat4::scaleXY(viewScale, vec3{ m_canvas.width() / 2.0f, m_canvas.height() / 2.0f, 1.0f});
 
     math::mat4 view(1.0f);
-    view = math::mat4::translation(view, vec3(0.0f, 0.0f, 1.0f));
-
-
-    math::mat4 view2(1.0f);
-    view2 = math::mat4::scaleXY(view, vec3{ m_canvas.width() / 2.0f, m_canvas.height() / 2.0f, 1.0f});
-
-    view = view2 * view;
+    view = viewScale * viewTranslation;
 
     math::mat4 ClipSpaceMatrix(1.0f);
     ClipSpaceMatrix = projection * view * model;
@@ -308,8 +309,15 @@ void Ekran::setupUI()
     m_scaleYSpinBox->setDecimals(2);
     m_scaleYSpinBox->setSingleStep(0.1);
 
+    m_scaleZSpinBox = new QDoubleSpinBox(this);
+    m_scaleZSpinBox->setRange(0.1, 10.0);
+    m_scaleZSpinBox->setValue(1.0);
+    m_scaleZSpinBox->setDecimals(2);
+    m_scaleZSpinBox->setSingleStep(0.1);
+
     m_rightLayout->addWidget(m_scaleXSpinBox);
     m_rightLayout->addWidget(m_scaleYSpinBox);
+    m_rightLayout->addWidget(m_scaleZSpinBox);
 
     m_resetButton = new QPushButton("Reset", this);
     m_rightLayout->addWidget(m_resetButton);
@@ -326,6 +334,7 @@ void Ekran::setupUI()
     connect(m_rotateSliderZ, &QSlider::valueChanged, this, &Ekran::onRotationZChanged);
     connect(m_scaleXSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &Ekran::onScaleXChanged);
     connect(m_scaleYSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &Ekran::onScaleYChanged);
+    connect(m_scaleZSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &Ekran::onScaleZChanged);
 
 
     connect(m_resetButton, &QPushButton::clicked, this, &Ekran::onButtonClicked);
@@ -351,60 +360,82 @@ math::mat4 Ekran::rotationMatrix(float radianX, float radianY, float radianZ)
 
 void Ekran::onTranslateXChanged(int value)
 {
-    m_translateXValue = value;
+    m_translateXValue = (float)value;
 
-    draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ, m_scaleXValue, m_scaleYValue);
+    draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ,
+           m_scaleXValue, m_scaleYValue, m_scaleZValue);
 }
 
 void Ekran::onTranslateYChanged(int value)
 {
-    m_translateYValue = value;
+    m_translateYValue = (float)value;
 
-     draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ, m_scaleXValue, m_scaleYValue);
+    draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ,
+           m_scaleXValue, m_scaleYValue, m_scaleZValue);
 }
 
 void Ekran::onRotationXChanged(int value)
 {
     m_rotationValueX = value * M_PI / 180;
 
-     draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ, m_scaleXValue, m_scaleYValue);
+    draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ,
+           m_scaleXValue, m_scaleYValue, m_scaleZValue);
 }
 
 void Ekran::onRotationYChanged(int value)
 {
     m_rotationValueY = value * M_PI / 180;
 
-     draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ, m_scaleXValue, m_scaleYValue);
+    draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ,
+           m_scaleXValue, m_scaleYValue, m_scaleZValue);
 }
 
 void Ekran::onRotationZChanged(int value)
 {
     m_rotationValueZ = value * M_PI / 180;
 
-     draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ, m_scaleXValue, m_scaleYValue);
+    draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ,
+           m_scaleXValue, m_scaleYValue, m_scaleZValue);
 }
 
 void Ekran::onScaleXChanged(double value)
 {
     m_scaleXValue = (float)value;
 
+    draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ,
+           m_scaleXValue, m_scaleYValue, m_scaleZValue);
 }
+
 
 void Ekran::onScaleYChanged(double value)
 {
     m_scaleYValue = (float)value;
+
+    draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ,
+           m_scaleXValue, m_scaleYValue, m_scaleZValue);
 }
+
+
+void Ekran::onScaleZChanged(double value)
+{
+    m_scaleZValue = (float)value;
+
+    draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,  m_rotationValueY,  m_rotationValueZ,
+           m_scaleXValue, m_scaleYValue, m_scaleZValue);
+}
+
 
 
 void Ekran::onButtonClicked()
 {
-    m_translateXValue = 0;
-    m_translateYValue = 0;
+    m_translateXValue = 0.0f;
+    m_translateYValue = 0.0f;
     m_rotationValueX = 0;
     m_rotationValueY = 0;
     m_rotationValueZ = 0;
     m_scaleXValue = 1.0f;
     m_scaleYValue = 1.0f;
+    m_scaleZValue = 1.0f;
 
 
     m_translateXSlider->setValue(0);
@@ -414,5 +445,9 @@ void Ekran::onButtonClicked()
     m_rotateSliderZ->setValue(0);
     m_scaleXSpinBox->setValue(1.0);
     m_scaleYSpinBox->setValue(1.0);
+
+    draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,
+           m_rotationValueY,  m_rotationValueZ, m_scaleXValue, m_scaleYValue, m_scaleZValue);
+
 
 }

@@ -131,7 +131,7 @@ mat4 mat4::rotationY(const mat4& matrix, float radian)
 
     result(0, 0) = std::cos(radian);
     result(0, 2) = std::sin(radian);
-    result(2, 1) = -std::sin(radian);
+    result(2, 0) = -std::sin(radian);
     result(2, 2) = std::cos(radian);
 
     return result;
@@ -171,6 +171,14 @@ mat4 mat4::perspective(float radians, float AspectRatio, float n, float f)
     result(2, 3) = -(f*n) / (f - n);
     result(3, 2) =  1.0f;
     result(3, 3) = 0.0f;
+
+
+    //result(0, 0) = 2.0f / 900;
+    //result(1, 1) = 2.0f / 700;
+    //result(2, 2) = -2.0f/(f - n);
+    //result(2, 3) = -(f*n) / (f - n);
+    //result(3, 2) =  0.0f;
+    //result(3, 3) = 0.0f;
 
     return result;
 }

@@ -62,7 +62,7 @@ private:
 
 
     void draw3D(float translationX, float translationY, float radianX, float radianY, float radianZ,
-                float scaleX, float scaleY);
+                float scaleX, float scaleY, float scaleZ);
     void setupUI();
 
 
@@ -89,6 +89,7 @@ private:
     QSlider* m_rotateSliderZ;
     QDoubleSpinBox* m_scaleXSpinBox;
     QDoubleSpinBox* m_scaleYSpinBox;
+    QDoubleSpinBox* m_scaleZSpinBox;
 
     QLabel* m_translationLabel;
     QLabel* m_rotateLabel;
@@ -99,13 +100,14 @@ private:
     QSpacerItem* m_spacer;
 
 
-    int m_translateXValue;
-    int m_translateYValue;
+    float m_translateXValue;
+    float m_translateYValue;
     float m_rotationValueX;
     float m_rotationValueY;
     float m_rotationValueZ;
     float m_scaleXValue;
     float m_scaleYValue;
+    float m_scaleZValue;
 
 
 private slots:
@@ -116,6 +118,7 @@ private slots:
     void onRotationZChanged(int value);
     void onScaleXChanged(double value);
     void onScaleYChanged(double value);
+    void onScaleZChanged(double value);
 
     void onButtonClicked();
 
