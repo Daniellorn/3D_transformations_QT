@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QDoubleSpinBox>
+#include <QCheckBox>
 
 
 
@@ -75,6 +76,10 @@ private:
     QImage m_canvas;
     QImage m_temp;
 
+    enum class BackFaceCullingMode{
+        OFF = 0, ON
+    } m_mode;
+
 
 
     QHBoxLayout* m_mainLayout;
@@ -90,6 +95,7 @@ private:
     QDoubleSpinBox* m_scaleXSpinBox;
     QDoubleSpinBox* m_scaleYSpinBox;
     QDoubleSpinBox* m_scaleZSpinBox;
+    QCheckBox* m_backfaceCullingCheckBox;
 
     QLabel* m_translationLabel;
     QLabel* m_rotateLabel;
@@ -121,6 +127,7 @@ private slots:
     void onScaleZChanged(double value);
 
     void onButtonClicked();
+    void setBackFaceCullingMode();
 
 
 

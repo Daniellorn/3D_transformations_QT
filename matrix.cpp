@@ -166,10 +166,10 @@ mat4 mat4::perspective(float radians, float AspectRatio, float n, float f)
     mat4 result(1.0f);
 
     result(0, 0) = 1.0f / (AspectRatio * std::tan(radians / 2.0f));
-    result(1, 1) = 1.0f / std::tan(radians / 2);
+    result(1, 1) = 1.0f / std::tan(radians / 2.0f);
     result(2, 2) = f / (f - n);
     result(2, 3) = -(f*n) / (f - n);
-    result(3, 2) =  1.0f;
+    result(3, 2) = 1.0f;
     result(3, 3) = 0.0f;
 
 
@@ -186,6 +186,39 @@ mat4 mat4::perspective(float radians, float AspectRatio, float n, float f)
 float mat4::radians(float angle)
 {
     return angle * std::numbers::pi_v<float> / 180;
+}
+
+float mat4::dotProduct(const vec3 &vectorA, const vec3 &vectorB)
+{
+    float result;
+
+    result = vectorA.x * vectorB.x + vectorA.y * vectorB.y + vectorA.z * vectorB.z;
+
+    return result;
+}
+
+vec3 mat4::crossProduct(const vec3 &vectorA, const vec3 &vectorB)
+{
+    vec3 result;
+
+    result.x = vectorA.y * vectorB.z - vectorA.z * vectorB.y;
+    result.y = vectorA.z * vectorB.x - vectorA.x * vectorB.z;
+    result.z = vectorA.x * vectorB.y - vectorA.y * vectorB.x;
+
+    float length = std::sqrt(result.x * result.x +
+                             result.y * result.y +
+                             result.z * result.z);
+
+    //qDebug() << "dlugosc: " << length;
+
+    if (length > 0.0f)
+    {
+        result.x /= length;
+        result.y /= length;
+        result.z /= length;
+    }
+
+    return result;
 }
 
 int mat4::getColNum() const

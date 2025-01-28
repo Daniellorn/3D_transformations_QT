@@ -33,6 +33,8 @@ public:
     static mat4 perspective(float radians, float proportion, float n , float f);
 
     static float radians(float angle);
+    static float dotProduct(const vec3& vectorA, const vec3& vectorB);
+    static vec3 crossProduct(const vec3& vectorA, const vec3& vectorB);
 
     int getColNum() const;
     int getRowNum() const;

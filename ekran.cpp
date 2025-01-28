@@ -8,7 +8,7 @@ using namespace math;
 Ekran::Ekran(QWidget *parent)
     : QWidget{parent}, m_translateXValue(0.0f), m_translateYValue(0.0f),
     m_rotationValueX(0.0f), m_rotationValueY(0.0f), m_rotationValueZ(0.0f),
-    m_scaleXValue(1.0f), m_scaleYValue(1.0f), m_scaleZValue(1.0f)
+    m_scaleXValue(1.0f), m_scaleYValue(1.0f), m_scaleZValue(1.0f), m_mode(BackFaceCullingMode::OFF)
 {
 
     m_canvas = QImage(900, 700, QImage::Format_RGB32);
@@ -196,7 +196,11 @@ void Ekran::draw3D(float translationX, float translationY, float radianX, float 
     projection = math::mat4::perspective(math::mat4::radians(45.0f), AspectRatio, 0.1f, 100.0f);
 
     math::mat4 model1(1.0f);
-    model1 = math::mat4::translation(model1, vec3(3.0f, 2.5f, 3.0f));
+    math::mat4 model2(1.0f);
+    math::mat4 model3(1.0f);
+    model1 = math::mat4::translation(model1, vec3(1.0f, 1.0f, 3.0f));
+    model2 = math::mat4::scaleXY(model2, vec3{ m_canvas.width() / 2.0f, m_canvas.height() / 2.0f, 1.0f});
+    model3 = math::mat4::translation(model3, vec3{(float)m_canvas.width(), (float)m_canvas.height(), 1.0f});
 
     math::mat4 modelRotation(1.0f);
     modelRotation = rotationMatrix(radianX, radianY, radianZ);
@@ -208,26 +212,29 @@ void Ekran::draw3D(float translationX, float translationY, float radianX, float 
     modelScale = math::mat4::scaleXY(modelScale, vec3{scaleX, scaleY, scaleZ});
 
     math::mat4 model(1.0f);
-    model = fromCenter * modelTranslation * model1 * modelScale * modelRotation * toCenter;
+    model = fromCenter * modelTranslation * model3 * model2 * model1 * modelScale * modelRotation * toCenter;
 
 
 
     math::mat4 viewTranslation(1.0f);
-    viewTranslation = math::mat4::translation(viewTranslation, vec3(center.x, center.y, 3.0f));
+    viewTranslation = math::mat4::translation(viewTranslation, vec3{ m_canvas.width() / 2.0f, m_canvas.height() / 2.0f, 1.0f});
 
 
     math::mat4 viewScale(1.0f);
-    viewScale = math::mat4::scaleXY(viewScale, vec3{ m_canvas.width() / 2.0f, m_canvas.height() / 2.0f, 1.0f});
+    viewScale = math::mat4::scaleXY(viewScale, vec3{ m_canvas.width() / 2.0f + 200.0f, m_canvas.height() / 2.0f + 200.0f, 1.0f});
 
     math::mat4 view(1.0f);
-    view = viewScale * viewTranslation;
+    view = viewTranslation;
 
-    math::mat4 ClipSpaceMatrix(1.0f);
-    ClipSpaceMatrix = projection * view * model;
+    math::mat4 WorldMatrix(1.0f);
+    WorldMatrix=  view *  model;
+
+
 
 
     std::array<Triangle, 12> projTriangle;
 
+    math::vec3 cameraPoint(0.0f, 0.0f, 0.0f);
 
     for (const auto& tri: m_triangles)
     {
@@ -236,15 +243,52 @@ void Ekran::draw3D(float translationX, float translationY, float radianX, float 
         Triangle test = tri;
 
 
+        triTrans.triangle[0] = WorldMatrix * triTrans.triangle[0];
+        triTrans.triangle[1] = WorldMatrix * triTrans.triangle[1];
+        triTrans.triangle[2] = WorldMatrix * triTrans.triangle[2];
 
-        triTrans.triangle[0] = ClipSpaceMatrix * triTrans.triangle[0];
-        triTrans.triangle[1] = ClipSpaceMatrix * triTrans.triangle[1];
-        triTrans.triangle[2] = ClipSpaceMatrix * triTrans.triangle[2];
+
+        math::vec3 normal, vecA, vecB, cameraVec;
+
+        vecA.x = triTrans.triangle[1].x - triTrans.triangle[0].x;
+        vecA.y = triTrans.triangle[1].y - triTrans.triangle[0].y;
+        vecA.z = triTrans.triangle[1].z - triTrans.triangle[0].z;
+
+        vecB.x = triTrans.triangle[2].x - triTrans.triangle[0].x;
+        vecB.y = triTrans.triangle[2].y - triTrans.triangle[0].y;
+        vecB.z = triTrans.triangle[2].z - triTrans.triangle[0].z;
 
 
-        drawTriangle(m_canvas, triTrans.triangle[0].x, triTrans.triangle[0].y,
-                               triTrans.triangle[1].x, triTrans.triangle[1].y,
-                               triTrans.triangle[2].x, triTrans.triangle[2].y);
+        normal = math::mat4::crossProduct(vecA, vecB);
+
+        cameraVec.x = triTrans.triangle[0].x - cameraPoint.x;
+        cameraVec.y = triTrans.triangle[0].y - cameraPoint.y;
+        cameraVec.z = triTrans.triangle[0].z - cameraPoint.z;
+
+        float dotProd = math::mat4::dotProduct(normal, cameraVec);
+
+        if (dotProd < 0.0f && m_mode == BackFaceCullingMode::ON)
+        {
+            triTrans.triangle[0] = projection * triTrans.triangle[0];
+            triTrans.triangle[1] = projection * triTrans.triangle[1];
+            triTrans.triangle[2] = projection * triTrans.triangle[2];
+
+            drawTriangle(m_canvas, triTrans.triangle[0].x, triTrans.triangle[0].y,
+                         triTrans.triangle[1].x, triTrans.triangle[1].y,
+                         triTrans.triangle[2].x, triTrans.triangle[2].y);
+        }
+
+
+        if (m_mode == BackFaceCullingMode::OFF)
+        {
+            triTrans.triangle[0] = projection * triTrans.triangle[0];
+            triTrans.triangle[1] = projection * triTrans.triangle[1];
+            triTrans.triangle[2] = projection * triTrans.triangle[2];
+
+            drawTriangle(m_canvas, triTrans.triangle[0].x, triTrans.triangle[0].y,
+                         triTrans.triangle[1].x, triTrans.triangle[1].y,
+                         triTrans.triangle[2].x, triTrans.triangle[2].y);
+        }
     }
 
     update();
@@ -270,11 +314,11 @@ void Ekran::setupUI()
     m_rightLayout->addWidget(m_translationLabel);
 
     m_translateXSlider = new QSlider(Qt::Horizontal, this);
-    m_translateXSlider->setRange(-m_canvas.width()/100, m_canvas.width()/100);
+    m_translateXSlider->setRange(-m_canvas.width() + 100.0f, m_canvas.width() + 100.0f);
     m_translateXSlider->setMinimumWidth(0);
     m_translateXSlider->setValue(0);
     m_translateYSlider = new QSlider(Qt::Horizontal, this);
-    m_translateYSlider->setRange(-m_canvas.height()/100, m_canvas.height()/100);
+    m_translateYSlider->setRange(-m_canvas.height() + 100.0f, m_canvas.height() + 100.0f);
     m_translateYSlider->setValue(0);
     m_rightLayout->addWidget(m_translateXSlider);
     m_rightLayout->addWidget(m_translateYSlider);
@@ -319,6 +363,9 @@ void Ekran::setupUI()
     m_rightLayout->addWidget(m_scaleYSpinBox);
     m_rightLayout->addWidget(m_scaleZSpinBox);
 
+    m_backfaceCullingCheckBox = new QCheckBox("Back-face Culling", this);
+    m_rightLayout->addWidget(m_backfaceCullingCheckBox);
+
     m_resetButton = new QPushButton("Reset", this);
     m_rightLayout->addWidget(m_resetButton);
 
@@ -335,6 +382,15 @@ void Ekran::setupUI()
     connect(m_scaleXSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &Ekran::onScaleXChanged);
     connect(m_scaleYSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &Ekran::onScaleYChanged);
     connect(m_scaleZSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &Ekran::onScaleZChanged);
+
+    connect(m_backfaceCullingCheckBox, &QCheckBox::toggled, this, [this](bool checked)
+            {
+                m_mode = checked ? BackFaceCullingMode::ON : BackFaceCullingMode::OFF;
+
+                draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,
+                     m_rotationValueY,  m_rotationValueZ, m_scaleXValue, m_scaleYValue, m_scaleZValue);
+
+            });
 
 
     connect(m_resetButton, &QPushButton::clicked, this, &Ekran::onButtonClicked);
@@ -445,6 +501,16 @@ void Ekran::onButtonClicked()
     m_rotateSliderZ->setValue(0);
     m_scaleXSpinBox->setValue(1.0);
     m_scaleYSpinBox->setValue(1.0);
+
+    draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,
+           m_rotationValueY,  m_rotationValueZ, m_scaleXValue, m_scaleYValue, m_scaleZValue);
+
+
+}
+
+void Ekran::setBackFaceCullingMode()
+{
+    m_mode = BackFaceCullingMode::ON;
 
     draw3D(m_translateXValue, m_translateYValue, m_rotationValueX,
            m_rotationValueY,  m_rotationValueZ, m_scaleXValue, m_scaleYValue, m_scaleZValue);
