@@ -200,7 +200,7 @@ void Ekran::draw3D(float translationX, float translationY, float radianX, float 
     math::mat4 model3(1.0f);
     model1 = math::mat4::translation(model1, vec3(1.0f, 1.0f, 3.0f));
     model2 = math::mat4::scaleXY(model2, vec3{ m_canvas.width() / 2.0f, m_canvas.height() / 2.0f, 1.0f});
-    model3 = math::mat4::translation(model3, vec3{(float)m_canvas.width(), (float)m_canvas.height(), 1.0f});
+    model3 = math::mat4::translation(model3, vec3{(float)m_canvas.width()/ 2, (float)m_canvas.height() / 2, 1.0f});
 
     math::mat4 modelRotation(1.0f);
     modelRotation = rotationMatrix(radianX, radianY, radianZ);
@@ -314,11 +314,11 @@ void Ekran::setupUI()
     m_rightLayout->addWidget(m_translationLabel);
 
     m_translateXSlider = new QSlider(Qt::Horizontal, this);
-    m_translateXSlider->setRange(-m_canvas.width() + 100.0f, m_canvas.width() + 100.0f);
+    m_translateXSlider->setRange(-m_canvas.width() + 200.0f, m_canvas.width() + 200.0f);
     m_translateXSlider->setMinimumWidth(0);
     m_translateXSlider->setValue(0);
     m_translateYSlider = new QSlider(Qt::Horizontal, this);
-    m_translateYSlider->setRange(-m_canvas.height() + 100.0f, m_canvas.height() + 100.0f);
+    m_translateYSlider->setRange(-m_canvas.height() + 200.0f, m_canvas.height() + 200.0f);
     m_translateYSlider->setValue(0);
     m_rightLayout->addWidget(m_translateXSlider);
     m_rightLayout->addWidget(m_translateYSlider);
