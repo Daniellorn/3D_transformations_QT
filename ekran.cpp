@@ -14,6 +14,14 @@ Ekran::Ekran(QWidget *parent)
     m_canvas = QImage(900, 700, QImage::Format_RGB32);
     m_canvas.fill(0);
 
+    m_texture = QImage("Assets/Obrazek1.jpg");
+
+    if (m_texture.isNull())
+    {
+        qDebug() << "Brak tekstury";
+        std::exit(1);
+    }
+
     setMinimumSize(1100, 800);
 
     m_triangles = {
@@ -161,6 +169,74 @@ void Ekran::drawTriangle(QImage &img, int x1, int y1, int x2, int y2, int x3, in
     drawLineBresenham(img, x3, y3, x1, y1);
 }
 
+void Ekran::drawTriangle(QImage &img, int x1, int y1, int x2, int y2, int x3, int y3, const QImage &texture)
+{
+    int x_a = x1;
+    int y_a = y1;
+
+    int x_b = x2;
+    int y_b = y2;
+
+    int x_c = x3;
+    int y_c = y3;
+
+    int x_a_t = 100;
+    int y_a_t = 400;
+    int x_b_t = 200;
+    int y_b_t = 400;
+    int x_c_t = 150;
+    int y_c_t = 50;
+
+    int W = ((x_b - x_a) * (y_c - y_a)) - ((y_b - y_a) * (x_c - x_a));
+
+    int min_y = std::min({y_a, y_b, y_c});
+    int max_y = std::max({y_a, y_b, y_c});
+    int min_x = std::min({x_a, x_b, x_c});
+    int max_x = std::max({x_a, x_b, x_c});
+
+    PixelColor textureColor;
+
+    for (int y = min_y; y <= max_y; y++)
+    {
+        for (int x = min_x; x <= max_x; x++)
+        {
+            int W_v = ((x - x_a) * (y_c - y_a)) - ((x_c - x_a) * (y - y_a));
+            int W_w = ((x_b - x_a) * (y - y_a)) - ((x - x_a) * (y_b - y_a));
+
+            float v = W_v / (W * 1.0f);
+            float w = W_w / (W * 1.0f);
+            float u = 1 - v - w;
+
+            if ((u >= 0 && v >= 0 && w >= 0) && (u <= 1 && v <= 1 && w <= 1))
+            {
+
+                float x_t = u * x_a_t + v * x_b_t + w * x_c_t;
+                float y_t = u * y_a_t + v * y_b_t + w * y_c_t;
+
+                PixelColor P1 = getPixel(m_texture, std::floor(x_t),
+                                         std::ceil(y_t));
+                PixelColor P2 = getPixel(m_texture, std::ceil(x_t),
+                                         std::ceil(y_t));
+                PixelColor P3 = getPixel(m_texture, std::ceil(x_t),
+                                         std::floor(y_t));
+
+                PixelColor P4 = getPixel(m_texture, std::floor(x_t),
+                                         std::floor(y_t));
+
+                float x_tt = x_t - std::floor(x_t);
+                float y_tt = y_t - std::floor(y_t);
+                textureColor.R = y_tt * ((1 - x_tt) * P1.R + x_tt * P2.R) + (1 - y_tt) * ((1 - x_tt) * P4.R + x_tt * P3.R);
+                textureColor.G = y_tt * ((1 - x_tt) * P1.G + x_tt * P2.G) + (1 - y_tt) * ((1 - x_tt) * P4.G + x_tt * P3.G);
+                textureColor.B = y_tt * ((1 - x_tt) * P1.B + x_tt * P2.B) + (1 - y_tt) * ((1 - x_tt) * P4.B + x_tt * P3.B);
+
+
+                setPixel(m_canvas, x, y, textureColor);
+            }
+        }
+    }
+    update();
+}
+
 
 void Ekran::draw3D(float translationX, float translationY, float radianX, float radianY, float radianZ, float scaleX, float scaleY, float scaleZ)
 {
@@ -212,7 +288,7 @@ void Ekran::draw3D(float translationX, float translationY, float radianX, float 
     modelScale = math::mat4::scaleXY(modelScale, vec3{scaleX, scaleY, scaleZ});
 
     math::mat4 model(1.0f);
-    model = fromCenter * modelTranslation * model3 * model2 * model1 * modelScale * modelRotation * toCenter;
+    model = fromCenter * modelTranslation * model2 * model1 * modelScale * modelRotation * toCenter;
 
 
 
@@ -227,7 +303,7 @@ void Ekran::draw3D(float translationX, float translationY, float radianX, float 
     view = viewTranslation;
 
     math::mat4 WorldMatrix(1.0f);
-    WorldMatrix=  view *  model;
+    WorldMatrix=    model;
 
 
 
@@ -238,9 +314,7 @@ void Ekran::draw3D(float translationX, float translationY, float radianX, float 
 
     for (const auto& tri: m_triangles)
     {
-        Triangle triProj;
         Triangle triTrans = tri;
-        Triangle test = tri;
 
 
         triTrans.triangle[0] = WorldMatrix * triTrans.triangle[0];
@@ -269,25 +343,37 @@ void Ekran::draw3D(float translationX, float translationY, float radianX, float 
 
         if (dotProd < 0.0f && m_mode == BackFaceCullingMode::ON)
         {
-            triTrans.triangle[0] = projection * triTrans.triangle[0];
-            triTrans.triangle[1] = projection * triTrans.triangle[1];
-            triTrans.triangle[2] = projection * triTrans.triangle[2];
+          // triTrans.triangle[0] = projection * triTrans.triangle[0];
+          // triTrans.triangle[1] = projection * triTrans.triangle[1];
+          // triTrans.triangle[2] = projection * triTrans.triangle[2];
 
-            drawTriangle(m_canvas, triTrans.triangle[0].x, triTrans.triangle[0].y,
-                         triTrans.triangle[1].x, triTrans.triangle[1].y,
-                         triTrans.triangle[2].x, triTrans.triangle[2].y);
+           triTrans.triangle[0] = projection * toCenter * triTrans.triangle[0];
+           triTrans.triangle[1] = projection * toCenter * triTrans.triangle[1];
+           triTrans.triangle[2] = projection * toCenter * triTrans.triangle[2];
+
+
+           drawTriangle(m_canvas, triTrans.triangle[0].x, triTrans.triangle[0].y,
+                        triTrans.triangle[1].x, triTrans.triangle[1].y,
+                        triTrans.triangle[2].x, triTrans.triangle[2].y, m_texture);
+//
+//
+           // drawTriangle(m_canvas, triTrans.triangle[0].x + m_canvas.width()/2.0f, triTrans.triangle[0].y + m_canvas.height() /2.0f,
+           //              triTrans.triangle[1].x + m_canvas.width() / 2.0f, triTrans.triangle[1].y  + m_canvas.height()/ 2.0f,
+           //              triTrans.triangle[2].x + m_canvas.width()/2.0f, triTrans.triangle[2].y + m_canvas.height()/2.0f, m_texture);
+
         }
 
 
         if (m_mode == BackFaceCullingMode::OFF)
         {
-            triTrans.triangle[0] = projection * triTrans.triangle[0];
-            triTrans.triangle[1] = projection * triTrans.triangle[1];
-            triTrans.triangle[2] = projection * triTrans.triangle[2];
+            triTrans.triangle[0] = projection * toCenter * triTrans.triangle[0];
+            triTrans.triangle[1] = projection * toCenter * triTrans.triangle[1];
+            triTrans.triangle[2] = projection * toCenter * triTrans.triangle[2];
 
-            drawTriangle(m_canvas, triTrans.triangle[0].x, triTrans.triangle[0].y,
-                         triTrans.triangle[1].x, triTrans.triangle[1].y,
-                         triTrans.triangle[2].x, triTrans.triangle[2].y);
+
+            drawTriangle(m_canvas, triTrans.triangle[0].x + m_canvas.width()/2.0f, triTrans.triangle[0].y + m_canvas.height() /2.0f,
+                         triTrans.triangle[1].x + m_canvas.width() / 2.0f, triTrans.triangle[1].y  + m_canvas.height()/ 2.0f,
+                         triTrans.triangle[2].x + m_canvas.width()/2.0f, triTrans.triangle[2].y + m_canvas.height()/2.0f);
         }
     }
 
@@ -516,4 +602,35 @@ void Ekran::setBackFaceCullingMode()
            m_rotationValueY,  m_rotationValueZ, m_scaleXValue, m_scaleYValue, m_scaleZValue);
 
 
+}
+
+void Ekran::setPixel(QImage &img, int x, int y, const PixelColor &color)
+{
+    int red = color.R;
+    int green = color.G;
+    int blue = color.B;
+
+    if (x < 0 || x >= img.width() || y < 0 || y >= img.height()) return;
+
+    uchar* line = img.scanLine(y);
+    line[4*x] = blue; //blue
+    line[4*x + 1] = green; //green
+    line[4*x + 2] = red; //red
+    //line[4*x + 3] = 255; // alpha
+}
+
+PixelColor Ekran::getPixel(const QImage &img, int x, int y) const
+{
+
+    if (x < 0 || x >= img.width() || y < 0 || y >= img.height()) return {0,0,0,0};
+
+
+    const uchar* line = img.scanLine(y);
+    uint8_t blue = line[4*x]; //blue
+    uint8_t green = line[4*x + 1]; //green
+    uint8_t red = line[4*x + 2]; //red
+    //uint8_t alpha = line[4*x + 3]; // alpha
+
+
+    return PixelColor{red, green, blue};
 }

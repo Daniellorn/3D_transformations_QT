@@ -60,6 +60,10 @@ private:
     void drawLineBresenham(QImage& img, int x1, int y1, int x2, int y2);
     void drawPixel(QImage& img, int x, int y, int h_color);
     void drawTriangle(QImage& img, int x1, int y1, int x2, int y2, int x3, int y3);
+    void drawTriangle(QImage &img, int x1, int y1, int x2, int y2, int x3, int y3, const QImage& texture);
+
+    void setPixel(QImage& img, int x, int y, const PixelColor& color);
+    PixelColor getPixel(const QImage& img, int x, int y) const;
 
 
     void draw3D(float translationX, float translationY, float radianX, float radianY, float radianZ,
@@ -75,6 +79,7 @@ private:
     std::array<Triangle, 12> m_triangles;
     QImage m_canvas;
     QImage m_temp;
+    QImage m_texture;
 
     enum class BackFaceCullingMode{
         OFF = 0, ON
